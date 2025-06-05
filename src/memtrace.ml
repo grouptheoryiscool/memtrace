@@ -43,7 +43,7 @@ let start_tracing ~context ~sampling_rate ~filename ~trace_format =
            host_name = Unix.gethostname ();
            ocaml_runtime_params = Sys.runtime_parameters ();
            pid = getpid64 ();
-           start_time = Timestamp.of_float (Unix.gettimeofday ()); (*TODO: this timestamp stuff needs to be handled better *)
+           start_time = Timestamp.of_float (Unix.gettimeofday ());
            context;
       } in
       let trace_writer = Writer.create fd ~getpid:getpid64 info in
@@ -58,7 +58,7 @@ let start_tracing ~context ~sampling_rate ~filename ~trace_format =
           host_name = Unix.gethostname ();
           ocaml_runtime_params = Sys.runtime_parameters ();
           pid = getpid64 ();
-          start_time = Timestamp.of_float (Unix.gettimeofday ()); (*TODO: this timestamp stuff needs to be handled better *)
+          start_time = Timestamp.of_float (Unix.gettimeofday ());
           context;
           } in
       let trace_writer = Writer.create fd ~getpid:getpid64 info in
@@ -69,8 +69,6 @@ let stop_tracing t =
   match t with
   | CTF_tracer tracer -> Memprof_tracer.stop tracer
   | Proto_tracer tracer -> Memprof_tracer_proto.stop tracer
-
-let create_pb_file filename = Ctf_to_proto.convert_file filename (filename ^ ".pb")
 
 let () =
   at_exit (
@@ -119,7 +117,6 @@ let trace_if_requested ?context ?sampling_rate () =
 
 module Trace = Trace
 module Profile = Profile
-module Writer_helper = Writer_helper
 module Memprof_tracer = Memprof_tracer
 
 (* TODO Need a Proto version of this module. *)
@@ -132,4 +129,3 @@ module Geometric_sampler = Geometric_sampler
 
 module Ctf_to_proto = Ctf_to_proto
 module Memprof_tracer_proto = Memprof_tracer_proto
-module Memory_map = Memory_map

@@ -31,8 +31,6 @@ val stop_tracing : tracer -> unit
 
 val default_sampling_rate : float
 
-val create_pb_file : string -> unit
-
 (** Use the Trace module to read and write trace files *)
 module Trace = Trace
 module Profile = Profile
@@ -63,4 +61,3 @@ module Geometric_sampler = Geometric_sampler
 (** Temporarily export CTF to Proto conversion module (For testing) *)
 module Ctf_to_proto = Ctf_to_proto
 module Memprof_tracer_proto = Memprof_tracer_proto
-module Memory_map = Memory_map

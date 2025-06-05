@@ -1,3 +1,6 @@
 (executables
- (libraries memtrace domainslib)
- (names fib_par testproto))
+ (libraries memtrace domainslib bigarray batteries)
+ (names fib_par testproto ffi ffi_mixed sudoku)
+ (foreign_stubs
+  (language c)
+  (names native ffi_mixed_stubs)))

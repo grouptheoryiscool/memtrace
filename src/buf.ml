@@ -8,7 +8,6 @@ module Shared = struct
   let of_bytes buf =
     { buf; pos = 0; pos_end = Bytes.length buf }
 
-
   let of_bytes_proto buf =
     { buf; pos = Bytes.length buf; pos_end = 0 }
 
@@ -38,7 +37,6 @@ module Write = struct
   | Bytes
 
   let rec write_fully fd buf pos pos_end =
-    (*Printf.printf "write_fully pos %d pos_end %d\n" pos pos_end;*)
     if pos = pos_end then () else
       let written = Unix.write fd buf pos (pos_end - pos) in
       write_fully fd buf (pos + written) pos_end

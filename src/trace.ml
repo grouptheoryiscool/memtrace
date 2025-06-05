@@ -24,23 +24,6 @@ let[@inline never] bad_formatf f = Printf.ksprintf (fun s -> bad_format s) f
 let check_fmt s b = if not b then bad_format s
 
 (* Utility types *)
-(** Types of allocation *)
-module Allocation_source = struct
-  type t = Minor | Major | External
-  end
-
-module Info = struct
-  type t = {
-    sample_rate : float;
-    word_size : int;
-    executable_name : string;
-    host_name : string;
-    ocaml_runtime_params : string;
-    pid : Int64.t;
-    start_time : int64;
-    context : string option;
-    }
-  end
 
 (* Time since the epoch *)
 module Timestamp = struct
@@ -235,12 +218,27 @@ let[@inline] get_event_header info b =
                                            event_header_time_len))) in
   (ev, time)
 
-
 module Location = Location_codec.Location
+
+
+(** Trace info *)
+
+module Info = struct
+  type t = {
+    sample_rate : float;
+    word_size : int;
+    executable_name : string;
+    host_name : string;
+    ocaml_runtime_params : string;
+    pid : Int64.t;
+    start_time : int64;
+    context : string option;
+    }
+  end
 
 let put_trace_info b (info : Info.t) =
   let open Write in
-  put_event_header b Ev_trace_info (info.start_time);
+  put_event_header b Ev_trace_info info.start_time;
   put_float b info.sample_rate;
   put_8 b info.word_size;
   put_string b info.executable_name;
@@ -370,6 +368,10 @@ module Location_code = struct
   module Tbl = IntTbl
 end
 
+module Allocation_source = struct
+  type t = Minor | Major | External
+end
+
 module Event = struct
   type t =
     | Alloc of {
@@ -392,8 +394,8 @@ module Event = struct
             let s = backtrace_buffer.(i) in
             match decode_loc s with
             | [] -> Printf.sprintf "$%d" (s :> int)
-            | ls -> String.concat " nextloc " (List.map Location.to_string ls))
-        |> String.concat " nextentryinbb " in
+            | ls -> String.concat " " (List.map Location.to_string ls))
+        |> String.concat " " in
       let alloc_src =
         match source with
         | Minor -> "alloc"
@@ -607,6 +609,7 @@ let get_alloc ~parse_backtraces evcode cache alloc_id b =
 (* The other events are much simpler *)
 
 let put_promote s now id =
+  (*Printf.printf "in put promote";*)
   let open Write in
   if id >= s.next_alloc_id then
     raise (Invalid_argument "Invalid ID in promotion");
@@ -618,10 +621,11 @@ let get_promote alloc_id b =
   let open Read in
   let id_delta = get_vint b in
   check_fmt "promote id sync" (id_delta >= 0);
-  let id  = alloc_id - 1 - id_delta in
+  let id = alloc_id - 1 - id_delta in
   Event.Promote id
 
 let put_collect s now id =
+  (*Printf.printf "in put collect";*)
   let open Write in
   if id >= s.next_alloc_id then
     raise (Invalid_argument "Invalid ID in collection");
@@ -679,7 +683,7 @@ let iter s ?(parse_backtraces=true) f =
   let open Read in
   let cache = Backtrace_codec.Reader.create () in
   let loc_reader = Location_codec.Reader.create () in
-  let last_timestamp = ref (s.info.start_time) in
+  let last_timestamp = ref s.info.start_time in
   let alloc_id = ref 0 in
   let iter_events_of_packet packet_header b =
     while remaining b > 0 do
@@ -768,7 +772,7 @@ module Writer = struct
       let slot = convert_raw_backtrace_slot slot in
       match Slot.location slot with
       | None -> tail
-      | Some { filename; line_number; start_char; end_char; _} ->
+      | Some { filename; line_number; start_char; end_char; _ } ->
          let defname = match Slot.name slot with Some n -> n | _ -> "??" in
          { filename; line=line_number; start_char; end_char; defname }::tail in
     get_locations (get_raw_backtrace_slot callstack i) |> List.rev
@@ -802,7 +806,8 @@ module Writer = struct
           ~callstack:btrev
           ~decode_callstack_entry in
       if id <> obj_id then
-        raise (Invalid_argument "Incorrect allocation ID")
+        (*Printf.printf "after put alloc";*)
+        raise (Invalid_argument (Printf.sprintf "Incorrect allocation ID expected: %d, got %d" (id :> int) (obj_id :> int)))
     | Promote id ->
       put_promote w now id
     | Collect id ->
