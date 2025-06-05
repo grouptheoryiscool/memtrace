@@ -183,6 +183,7 @@ let compare_loc_list ctflocs (protolocs : line list) (profile : profile) : bool 
         true
   ) ctflocs protolocs
 
+(* Check that the backtraces are valid and match the locations in the profile *)
 let check_valid_backtraces (profile : profile) (location_by_id : location option array) (events: event' list) = 
   let n = 10 in 
   let samples_to_check = List.take n profile.sample in
